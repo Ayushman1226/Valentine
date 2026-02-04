@@ -50,9 +50,7 @@
       box-shadow:0 8px 18px rgba(0,0,0,.15);
     }
 
-    .heart{
-      font-size:32px;
-    }
+    .heart{ font-size:32px; }
 
     h1{
       margin:16px 0 6px;
@@ -92,9 +90,7 @@
       box-shadow:0 12px 24px rgba(255,77,109,.35);
     }
 
-    #yesBtn:hover{
-      transform:scale(1.08);
-    }
+    #yesBtn:hover{ transform:scale(1.08); }
 
     /* NO button stays in layout */
     #noBtn{
@@ -150,24 +146,26 @@
       cursor:pointer;
       opacity:.85;
     }
-
     .close:hover{ opacity:1; }
 
-    /* AUTO-SCROLLING COLLAGE */
+    /* COLLAGE VIEWPORT (NO HOVER PAUSE) */
     .reel{
       height:380px;
-      overflow:hidden;
+      overflow:hidden;     /* user can’t scroll, but JS can */
       border-radius:20px;
       padding:8px;
       position:relative;
+      scroll-behavior:auto;
+      -ms-overflow-style:none;      /* IE/Edge */
+      scrollbar-width:none;         /* Firefox */
+      overscroll-behavior: contain; /* prevents rubber-band scroll */
     }
+    .reel::-webkit-scrollbar{ display:none; } /* Chrome/Safari */
 
     .reel-track{
       display:flex;
       flex-direction:column;
       gap:14px;
-      animation:scrollReel 36s linear infinite;
-      will-change:transform;
     }
 
     .reel-track img{
@@ -178,7 +176,7 @@
       box-shadow:0 10px 22px rgba(0,0,0,.15);
     }
 
-    /* Valentine message card (same size as images) */
+    /* End message card */
     .end-message{
       width:100%;
       aspect-ratio:1/1;
@@ -194,27 +192,16 @@
       box-shadow:0 10px 22px rgba(0,0,0,.10);
       color:#c81d50;
     }
-
     .end-message .big{
       font-size:22px;
       font-weight:800;
       margin-bottom:8px;
     }
-
     .end-message .small{
       font-size:15px;
       color:#7a2140;
       font-weight:600;
       line-height:1.35;
-    }
-
-    .reel:hover .reel-track{
-      animation-play-state:paused;
-    }
-
-    @keyframes scrollReel{
-      from{ transform:translateY(0); }
-      to{ transform:translateY(-50%); }
     }
 
     @media (max-width:520px){
@@ -251,9 +238,9 @@
       <h2>YAY! 💘</h2>
       <p>Sunayna, you just made my day 😍</p>
 
-      <div class="reel">
-        <div class="reel-track">
-          <!-- Sequence A: 9 images + end message -->
+      <div class="reel" id="reel">
+        <div class="reel-track" id="reelTrack">
+          <!-- 9 images -->
           <img src="1.jpeg" alt="Memory 1">
           <img src="2.jpeg" alt="Memory 2">
           <img src="3.jpeg" alt="Memory 3">
@@ -264,7 +251,8 @@
           <img src="8.jpeg" alt="Memory 8">
           <img src="9.jpeg" alt="Memory 9">
 
-          <div class="end-message" aria-label="Valentine message">
+          <!-- Final message (scroll stops when this is reached) -->
+          <div class="end-message" id="endMessage" aria-label="Valentine message">
             <div>
               <div class="big">Sunayna 💖</div>
               <div class="small">
@@ -274,38 +262,25 @@
             </div>
           </div>
 
-          <!-- Sequence B (duplicate for seamless loop): same 9 images + end message -->
-          <img src="1.jpeg" alt="Memory 1 duplicate">
-          <img src="2.jpeg" alt="Memory 2 duplicate">
-          <img src="3.jpeg" alt="Memory 3 duplicate">
-          <img src="4.jpeg" alt="Memory 4 duplicate">
-          <img src="5.jpeg" alt="Memory 5 duplicate">
-          <img src="6.jpeg" alt="Memory 6 duplicate">
-          <img src="7.jpeg" alt="Memory 7 duplicate">
-          <img src="8.jpeg" alt="Memory 8 duplicate">
-          <img src="9.jpeg" alt="Memory 9 duplicate">
-
-          <div class="end-message" aria-label="Valentine message duplicate">
-            <div>
-              <div class="big">Sunayna 💖</div>
-              <div class="small">
-                Thank you for being you.<br>
-                Will you be my Valentine forever? ✨
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    const noBtn = document.getElementById("noBtn");
-    const yesBtn = document.getElementById("yesBtn");
-    const overlay = document.getElementById("overlay");
+    const noBtn    = document.getElementById("noBtn");
+    const yesBtn   = document.getElementById("yesBtn");
+    const overlay  = document.getElementById("overlay");
     const closeBtn = document.getElementById("closeBtn");
-    const music = document.getElementById("bgMusic");
+    const music    = document.getElementById("bgMusic");
 
+    const reel      = document.getElementById("reel");
+    const endMsg    = document.getElementById("endMessage");
+
+    let rafId = null;
+    let lastTs = null;
+
+    // --- No button runs away (without breaking center alignment) ---
     function moveNoButton(){
       const box = document.querySelector(".buttons").getBoundingClientRect();
       const maxX = (box.width / 2) - noBtn.offsetWidth;
@@ -316,22 +291,80 @@
 
       noBtn.style.transform = `translate(${x}px, ${y}px)`;
     }
-
     noBtn.addEventListener("mouseenter", moveNoButton);
     noBtn.addEventListener("touchstart", moveNoButton, { passive:true });
 
-    yesBtn.onclick = () => {
+    // --- Auto-scroll until end message is shown, then STOP ---
+    function stopAutoScroll(){
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+      lastTs = null;
+    }
+
+    function startAutoScroll(){
+      stopAutoScroll();
+      reel.scrollTop = 0;
+
+      // speed: px per second (tune this)
+      const speed = 55;
+
+      // wait one frame so layout is measured correctly
+      requestAnimationFrame(() => {
+        const maxScroll = Math.max(0, reel.scrollHeight - reel.clientHeight);
+
+        const step = (ts) => {
+          if (lastTs == null) lastTs = ts;
+          const dt = (ts - lastTs) / 1000;
+          lastTs = ts;
+
+          // Move
+          reel.scrollTop = Math.min(maxScroll, reel.scrollTop + speed * dt);
+
+          // Stop condition: when end message is visible enough
+          const endRect = endMsg.getBoundingClientRect();
+          const reelRect = reel.getBoundingClientRect();
+
+          const endFullyVisible = endRect.bottom <= reelRect.bottom && endRect.top >= reelRect.top;
+          const reachedBottom = reel.scrollTop >= maxScroll - 1;
+
+          if (endFullyVisible || reachedBottom) {
+            reel.scrollTop = maxScroll; // snap to final
+            stopAutoScroll();
+            return;
+          }
+
+          rafId = requestAnimationFrame(step);
+        };
+
+        rafId = requestAnimationFrame(step);
+      });
+    }
+
+    // Prevent any user wheel/touch scroll from pausing/interrupting
+    reel.addEventListener("wheel", (e) => e.preventDefault(), { passive:false });
+    reel.addEventListener("touchmove", (e) => e.preventDefault(), { passive:false });
+
+    // --- Overlay open/close ---
+    function openOverlay(){
       overlay.style.display = "flex";
+
       music.volume = 0.8;
       music.play().catch(()=>{});
-    };
 
-    closeBtn.onclick = () => {
+      startAutoScroll();
+    }
+
+    function closeOverlay(){
       overlay.style.display = "none";
-    };
+      stopAutoScroll();
+      // Optional: stop music too
+      // music.pause(); music.currentTime = 0;
+    }
 
-    overlay.addEventListener("click", e => {
-      if(e.target === overlay) overlay.style.display = "none";
+    yesBtn.addEventListener("click", openOverlay);
+    closeBtn.addEventListener("click", closeOverlay);
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) closeOverlay();
     });
   </script>
 
