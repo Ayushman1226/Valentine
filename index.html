@@ -52,18 +52,21 @@
 
     .heart{
       font-size:30px;
+      transform: translateY(-1px);
     }
 
     h1{
       margin:18px 0 6px;
       color:var(--pink);
       font-size:24px;
+      line-height:1.2;
     }
 
     .sub{
       margin:0 0 18px;
       color:#444;
       font-size:14px;
+      opacity:.92;
     }
 
     .buttons{
@@ -73,6 +76,7 @@
       justify-content:center;
       align-items:center;
       gap:14px;
+      margin-top:6px;
     }
 
     button{
@@ -81,14 +85,19 @@
       border-radius:999px;
       font-size:18px;
       cursor:pointer;
+      transition:transform .15s ease;
+      user-select:none;
     }
 
     #yesBtn{
       background:var(--pink);
       color:#fff;
+      box-shadow:0 12px 22px rgba(255,77,109,.35);
     }
 
-    #yesBtn:hover{ transform:scale(1.08); }
+    #yesBtn:hover{
+      transform:scale(1.08);
+    }
 
     #noBtn{
       background:#e9e9e9;
@@ -116,16 +125,19 @@
       border-radius:22px;
       padding:18px;
       position:relative;
+      box-shadow:0 25px 70px rgba(0,0,0,.35);
     }
 
     .modal h2{
       color:var(--pink);
       margin:6px 8px 10px;
+      font-size:22px;
     }
 
     .modal p{
       margin:0 8px 14px;
       color:#444;
+      font-size:14px;
     }
 
     .close{
@@ -139,9 +151,14 @@
       color:#fff;
       border:none;
       cursor:pointer;
+      opacity:.86;
     }
 
-    /* Auto-scrolling collage */
+    .close:hover{
+      opacity:1;
+    }
+
+    /* Auto-scrolling collage reel */
     .reel{
       height:360px;
       overflow:hidden;
@@ -153,7 +170,8 @@
       display:flex;
       flex-direction:column;
       gap:12px;
-      animation:scrollReel 25s linear infinite;
+      animation:scrollReel 30s linear infinite;
+      will-change:transform;
     }
 
     .reel-track img{
@@ -169,75 +187,115 @@
     }
 
     @keyframes scrollReel{
-      from{transform:translateY(0);}
-      to{transform:translateY(-50%);}
+      from{ transform:translateY(0); }
+      to  { transform:translateY(-50%); }
+    }
+
+    @media (max-width:520px){
+      #noBtn{ left:58%; }
+      .reel{ height:320px; }
     }
   </style>
 </head>
 
 <body>
 
-<div class="card">
-  <div class="photos-row">
-    <img src="me.jpg" alt="Me">
-    <div class="heart">❤️</div>
-    <img src="sunayna.jpg" alt="Sunayna">
-  </div>
+  <div class="card">
+    <div class="photos-row">
+      <img src="me.jpeg" alt="Me">
+      <div class="heart">❤️</div>
+      <img src="sunayna.jpeg" alt="Sunayna">
+    </div>
 
-  <h1>Sunayna, will you be my Valentine? 💕</h1>
-  <p class="sub">I have something special to show you…</p>
+    <h1>Sunayna, will you be my Valentine? 💕</h1>
+    <p class="sub">I have something special to show you if you say yes…</p>
 
-  <div class="buttons">
-    <button id="yesBtn">Yes 💖</button>
-    <button id="noBtn">No 💔</button>
-  </div>
-</div>
-
-<audio id="bgMusic" src="romantic.mp3" preload="auto" loop></audio>
-
-<div class="overlay" id="overlay">
-  <div class="modal">
-    <button class="close" id="closeBtn">✕</button>
-    <h2>YAY! 💘</h2>
-    <p>Sunayna, you just made my day 😍</p>
-
-    <div class="reel">
-      <div class="reel-track">
-        <img src="1.jpg"><img src="2.jpg"><img src="3.jpg">
-        <img src="4.jpg"><img src="5.jpg"><img src="6.jpg">
-        <img src="1.jpg"><img src="2.jpg"><img src="3.jpg">
-        <img src="4.jpg"><img src="5.jpg"><img src="6.jpg">
-      </div>
+    <div class="buttons">
+      <button id="yesBtn">Yes 💖</button>
+      <button id="noBtn">No 💔</button>
     </div>
   </div>
-</div>
 
-<script>
-  const noBtn=document.getElementById("noBtn");
-  const yesBtn=document.getElementById("yesBtn");
-  const overlay=document.getElementById("overlay");
-  const closeBtn=document.getElementById("closeBtn");
-  const music=document.getElementById("bgMusic");
+  <!-- Music (plays on Yes click) -->
+  <audio id="bgMusic" src="romantic.mp3" preload="auto" loop></audio>
 
-  function moveNo(){
-    const box=document.querySelector(".buttons").getBoundingClientRect();
-    noBtn.style.left=Math.random()*(box.width-noBtn.offsetWidth)+"px";
-    noBtn.style.top=Math.random()*(box.height-noBtn.offsetHeight)+"px";
-  }
+  <!-- Collage Overlay -->
+  <div class="overlay" id="overlay" aria-hidden="true">
+    <div class="modal">
+      <button class="close" id="closeBtn" aria-label="Close">✕</button>
+      <h2>YAY! 💘</h2>
+      <p>Sunayna, you just made my day 😍</p>
 
-  noBtn.addEventListener("mouseenter",moveNo);
-  noBtn.addEventListener("touchstart",moveNo,{passive:true});
+      <div class="reel">
+        <div class="reel-track">
+          <!-- 9 photos -->
+          <img src="1.jpeg" alt="Memory 1">
+          <img src="2.jpeg" alt="Memory 2">
+          <img src="3.jpeg" alt="Memory 3">
+          <img src="4.jpeg" alt="Memory 4">
+          <img src="5.jpeg" alt="Memory 5">
+          <img src="6.jpeg" alt="Memory 6">
+          <img src="7.jpeg" alt="Memory 7">
+          <img src="8.jpeg" alt="Memory 8">
+          <img src="9.jpeg" alt="Memory 9">
 
-  yesBtn.onclick=()=>{
-    overlay.style.display="flex";
-    music.volume=0.8;
-    music.play().catch(()=>{});
-  };
+          <!-- duplicates for seamless loop -->
+          <img src="1.jpeg" alt="Memory 1 duplicate">
+          <img src="2.jpeg" alt="Memory 2 duplicate">
+          <img src="3.jpeg" alt="Memory 3 duplicate">
+          <img src="4.jpeg" alt="Memory 4 duplicate">
+          <img src="5.jpeg" alt="Memory 5 duplicate">
+          <img src="6.jpeg" alt="Memory 6 duplicate">
+          <img src="7.jpeg" alt="Memory 7 duplicate">
+          <img src="8.jpeg" alt="Memory 8 duplicate">
+          <img src="9.jpeg" alt="Memory 9 duplicate">
+        </div>
+      </div>
 
-  closeBtn.onclick=()=>{
-    overlay.style.display="none";
-  };
-</script>
+    </div>
+  </div>
+
+  <script>
+    const noBtn   = document.getElementById("noBtn");
+    const yesBtn  = document.getElementById("yesBtn");
+    const overlay = document.getElementById("overlay");
+    const closeBtn= document.getElementById("closeBtn");
+    const music   = document.getElementById("bgMusic");
+
+    function moveNoButton(){
+      const box = document.querySelector(".buttons").getBoundingClientRect();
+      const maxX = Math.max(0, box.width  - noBtn.offsetWidth);
+      const maxY = Math.max(0, box.height - noBtn.offsetHeight);
+
+      noBtn.style.left = (Math.random() * maxX) + "px";
+      noBtn.style.top  = (Math.random() * maxY) + "px";
+    }
+
+    noBtn.addEventListener("mouseenter", moveNoButton);
+    noBtn.addEventListener("touchstart", moveNoButton, { passive: true });
+
+    function openOverlay(){
+      overlay.style.display = "flex";
+      overlay.setAttribute("aria-hidden", "false");
+
+      // play music after user gesture (browser-friendly)
+      music.volume = 0.8;
+      music.play().catch(()=>{});
+    }
+
+    function closeOverlay(){
+      overlay.style.display = "none";
+      overlay.setAttribute("aria-hidden", "true");
+      // Optional: stop music when closing
+      // music.pause(); music.currentTime = 0;
+    }
+
+    yesBtn.addEventListener("click", openOverlay);
+    closeBtn.addEventListener("click", closeOverlay);
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) closeOverlay();
+    });
+  </script>
 
 </body>
 </html>
